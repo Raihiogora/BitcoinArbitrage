@@ -3,11 +3,12 @@
 
 
 class Cryptocurrency:
-    __id_count = 0
+    # class variable
+    _id_count = 0
 
     def __init__(self, name='undefined', codelist=list()):
-        Cryptocurrency.__id_count += 1
-        self.__identity = Cryptocurrency.__id_count
+        Cryptocurrency._id_count += 1
+        self._id = Cryptocurrency._id_count
         self.__name = name
         self.__codelist = codelist
         #self.__market_value = {} # => 'KRAKEN':{'BTC':15,'EUR':55}
@@ -30,6 +31,10 @@ class Cryptocurrency:
     def code_list(self):
         return self.__codelist
 
+    @property
+    def code(self):
+        return self.__codelist[0]
+
     def __str__(self):
         return self.__name
 
@@ -48,6 +53,10 @@ class CryptoManager:
     @classmethod
     def get_manager(cls):
         return cls._manager
+
+    @classmethod
+    def get_manager_dict(cls):
+        return cls._manager.dict
 
     def __init__(self, currency_market=None):
         self.__currencyMarket = currency_market

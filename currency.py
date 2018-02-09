@@ -15,6 +15,10 @@ class Currency:
     def code_list(self):
         return self.__codelist
 
+    @property
+    def code(self):
+        return self.__codelist[0]
+
     def __repr__(self):
         return self.__name.__repr__()
 
@@ -30,6 +34,10 @@ class CurrencyManager:
     @classmethod
     def get_manager(cls):
         return cls._manager
+
+    @classmethod
+    def get_manager_dict(cls):
+        return cls._manager.dict
 
     def __init__(self):
         self._dict = dict()

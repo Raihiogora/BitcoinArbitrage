@@ -7,7 +7,59 @@ from cryptocurrency import CryptoManager
 from marketplace import MarketManager
 
 # from datetime import datetime
+from decimal import *
 from functools import reduce
+
+
+"""
+s_crytpo : code of crypto
+s_currency : code of currency
+c_crypto_curr : list of CryptoInCurrency
+"""
+def search_crypto_currency(s_crypto, s_currency, l_crypto_curr):
+    # recherche si le couple (s_crypto, s_currency) existe pour la place de marché
+    s_value = None
+    for search in l_crypto_curr:
+        if search.crypto.code == s_crypto and search.currency.code == s_currency:
+            s_value = search.value
+            break
+    return s_value
+
+
+def calculate_compare_markets():
+    d_crypto = CryptoManager.get_manager_dict()
+    d_market = MarketManager.get_manager_dict()
+    d_currency = CurrencyManager.get_manager_dict()
+    # l_market = d_market.key()
+    # 1) je sélectionne un couple crypt,currency avec le double for
+    # 2) je crée une matrice associée à ce couple : la matrice prend en X et Y une place de marché
+    for s_crypto, c_crypto in d_crypto.items():
+        for s_currency, c_currency in d_currency.items():
+            if s_crypto == s_currency:
+                break
+            # matrix : compare currency between markets
+            i_size = len(d_market) # order by l_market
+            m_compare_currency = [[None for x in range(i_size)] for y in range(i_size)]
+            i_pos_x = 0
+            # s_market représente la ligne
+            # s_market_compared représente la colonne
+            for s_market, c_market in d_market.items():
+                # recherche si le couple s_crypto, s_currency existe pour la place de marché
+                s_value = search_crypto_currency(s_crypto, s_currency, c_market.cryptoInCurrency.values())
+                if s_value is not None:
+                    i_pos_y = 0
+                    for s_market_compared, c_market_compared in d_market.items():
+                        if s_market == s_market_compared:
+                            m_compare_currency[i_pos_x][i_pos_y] = Decimal(0)
+                        else:
+                            # recherche si le couple s_crypto, s_currency existe pour la place de marché
+                            s_value_compared = search_crypto_currency(s_crypto, s_currency, c_market_compared.cryptoInCurrency.values())
+                            if s_value_compared is not None:
+                                # Decimal('0.10154500')-Decimal('0.10154500') = Decimal('0E-8') !!
+                                m_compare_currency[i_pos_x][i_pos_y] = Decimal(s_value) - Decimal(s_value_compared)
+                        i_pos_y += 1
+                i_pos_x += 1
+            print(s_crypto, s_currency, m_compare_currency)
 
 
 if __name__ == '__main__':
@@ -17,6 +69,9 @@ if __name__ == '__main__':
     markets = MarketManager.get_manager()
     markets.load_data()
     # markets.get_market_from_code('KRAKEN').load_data()
+
+    # compare market place for each currency
+    calculate_compare_markets()
 
     #cryptomanager = CryptoManager.get_manager()
     #for key, value in cryptomanager.dictionnary.items():
@@ -70,5 +125,6 @@ if __name__ == '__main__':
     # example : wait 3600
     print('end')
     exit(0)
+
 
 # end of file

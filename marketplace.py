@@ -81,6 +81,10 @@ class MarketManager:
     def get_manager(cls):
         return cls._manager
 
+    @classmethod
+    def get_manager_dict(cls):
+        return cls._manager.dict
+
     #@staticmethod
     #def initialize():
     #    # global managers
