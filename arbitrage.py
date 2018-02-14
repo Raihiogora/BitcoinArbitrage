@@ -1,6 +1,12 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+"""
+
+Modules to install
+- requests
+- xlsxwriter
+"""
 
 from currency import CurrencyManager
 from cryptocurrency import CryptoManager
@@ -9,7 +15,8 @@ from marketplace import MarketManager
 # from datetime import datetime
 from decimal import *
 from functools import reduce
-
+import re
+import xlsxwriter
 
 """
 s_crytpo : code of crypto
@@ -62,6 +69,31 @@ def calculate_compare_markets():
             print(s_crypto, s_currency, m_compare_currency)
 
 
+def write_excel_file(matrix):
+    # Create a workbook and add a worksheet.
+    workbook = xlsxwriter.Workbook('MarketPlaces01.xlsx')
+    worksheet = workbook.add_worksheet()
+
+    # Start from the first cell. Rows and columns are zero indexed.
+    row = 0
+    # Iterate over the data and write it out row by row.
+    for line in matrix:
+        col = 0
+        for item in line:
+            if re.match('((\d+[\.]\d*$)|(\.)\d+$|\d+$)', item):
+                # worksheet.write(row, col, ('%.10f' % item).replace('.', ','))
+                worksheet.write(row, col, float(item))
+            else:
+                worksheet.write(row, col, item)
+            col += 1
+        row += 1
+
+    # Write a total using a formula.
+    # worksheet.write(row, 1, '=SUM(B1:B4)')
+
+    workbook.close()
+
+
 if __name__ == '__main__':
     print('start')
     # init main objects
@@ -87,7 +119,7 @@ if __name__ == '__main__':
     market_position = {'KRAKEN':0,'BINANCE':1,'BITTREX':2,'POLONIEX':3,'GDAX':4}
     currency_position = {'BTC':0,'ETH':1,'EUR':2,'USD':3}
     crypto_position = dict()
-    i_count=0
+    i_count=1
     for key in CryptoManager.get_manager().dict.keys():
         crypto_position[key] = i_count
         i_count += 1
@@ -95,6 +127,11 @@ if __name__ == '__main__':
     i_nb_currency = len(currency_position)
     i_nb_market = len(market_position)
     m_values = []
+    m_values.extend([['CRYPTO','KRAKEN-BTC','KRAKEN-ETH','KRAKEN-EUR','KRAKEN-USD',
+          'BINANCE-BTC','BINANCE-ETH','BINANCE-EUR','BINANCE-USD',
+          'BITTREX-BTC','BITTREX-ETH','BITTREX-EUR','BITTREX-USD',
+          'POLONIEX-BTC','POLONIEX-ETH','POLONIEX-EUR','POLONIEX-USD',
+          'GDAX-BTC','GDAX-ETH','GDAX-EUR','GDAX-USD']])
     for s_key, i_pos in crypto_position.items():
         l_values = ['' for i in range(1 + i_nb_market * i_nb_currency)]
         l_values[0] = s_key
@@ -107,6 +144,8 @@ if __name__ == '__main__':
             s_value = cryptoInCurrency.value
             if s_value is not None:
                 m_values[crypto_position[s_crypto]][1 + market_position[s_market] * i_nb_currency + currency_position[s_currency]] = s_value
+
+    write_excel_file(m_values)
 
     #for cryptocurrency, values_in_markets in cryptocurrency_dict.items():
     #    marketslist = values_in_markets.market_value
