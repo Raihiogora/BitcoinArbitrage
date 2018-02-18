@@ -38,8 +38,9 @@ def calculate_compare_markets():
     d_market = MarketManager.get_manager_dict()
     d_currency = CurrencyManager.get_manager_dict()
     # l_market = d_market.key()
-    # 1) je sélectionne un couple crypt,currency avec le double for
+    # 1) je sélectionne un couple crypt,currency avec le "double for"
     # 2) je crée une matrice associée à ce couple : la matrice prend en X et Y une place de marché
+    m_line_markets = list(x for x in d_market.keys())
     for s_crypto, c_crypto in d_crypto.items():
         for s_currency, c_currency in d_currency.items():
             if s_crypto == s_currency:
@@ -61,19 +62,49 @@ def calculate_compare_markets():
                         else:
                             # recherche si le couple s_crypto, s_currency existe pour la place de marché
                             s_value_compared = search_crypto_currency(s_crypto, s_currency, c_market_compared.cryptoInCurrency.values())
-                            if s_value_compared is not None:
+                            if s_value_compared is not None and Decimal(s_value_compared) > 0.00000001:
                                 # Decimal('0.10154500')-Decimal('0.10154500') = Decimal('0E-8') !!
-                                m_compare_currency[i_pos_x][i_pos_y] = Decimal(s_value) - Decimal(s_value_compared)
+                                # convert in %
+                                f_value = Decimal(0.00)
+                                if Decimal(s_value) > 0.00000001:
+                                    f_value = (Decimal(s_value_compared) - Decimal(s_value)) * Decimal(100.00) / Decimal(s_value)
+                                    #if f_value < 0.01 and f_value > -0.01:
+                                    #    f_value = None
+                                m_compare_currency[i_pos_x][i_pos_y] = f_value
                         i_pos_y += 1
                 i_pos_x += 1
             print(s_crypto, s_currency, m_compare_currency)
+            c_crypto.add_currency_in_markets_compared(c_currency, m_line_markets, m_compare_currency)
 
 
-def write_excel_file(matrix):
+"""
+Search for the best in each cryptocurrency
+The best is > 1%
+"""
+def get_best_crypto_conversion():
+    l_result = list()
+    d_crypto = CryptoManager.get_manager_dict()
+    for s_crypto, c_crypto in d_crypto.items():
+        for s_currency, item_list in c_crypto.currency_in_markets_compared_dict.items():
+            c_currency, markets_compared_matrix = item_list
+            i_xpos = 0
+            for line in markets_compared_matrix:
+                i_ypos = 0
+                for column in line:
+                    # more than 1%
+                    if column is not None and column > 1.00:
+                        # we underline it
+                        print(s_crypto, s_currency, c_crypto.markets_list[i_xpos], '->', c_crypto.markets_list[i_ypos], column)
+                        l_result.append(s_crypto + '-' + s_currency + ' : ' + c_crypto.markets_list[i_xpos] + ' -> ' + c_crypto.markets_list[i_ypos] + ' ' + str(column))
+                    i_ypos += 1
+                i_xpos += 1
+    return l_result
+
+
+def write_excel_file(matrix, string_list):
     # Create a workbook and add a worksheet.
     workbook = xlsxwriter.Workbook('MarketPlaces01.xlsx')
     worksheet = workbook.add_worksheet()
-
     # Start from the first cell. Rows and columns are zero indexed.
     row = 0
     # Iterate over the data and write it out row by row.
@@ -87,10 +118,13 @@ def write_excel_file(matrix):
                 worksheet.write(row, col, item)
             col += 1
         row += 1
-
     # Write a total using a formula.
     # worksheet.write(row, 1, '=SUM(B1:B4)')
-
+    worksheet2 = workbook.add_worksheet()
+    row = 0
+    for item in string_list:
+        worksheet2.write(row, 0, item)
+        row += 1
     workbook.close()
 
 
@@ -105,21 +139,14 @@ if __name__ == '__main__':
     # compare market place for each currency
     calculate_compare_markets()
 
-    #cryptomanager = CryptoManager.get_manager()
-    #for key, value in cryptomanager.dictionnary.items():
+    # cryptomanager = CryptoManager.get_manager()
+    # for key, value in cryptomanager.dictionnary.items():
     #    print(key + ':' + value.__repr__())
-    print('\n\n')
-    print('CRYPTO;KRAKEN-BTC;KRAKEN-ETH;KRAKEN-EUR;KRAKEN-USD;'
-          'BINANCE-BTC;BINANCE-ETH;BINANCE-EUR;BINANCE-USD;'
-          'BITTREX-BTC;BITTREX-ETH;BITTREX-EUR;BITTREX-USD;'
-          'POLONIEX-BTC;POLONIEX-ETH;POLONIEX-EUR;POLONIEX-USD;'
-          'GDAX-BTC;GDAX-ETH;GDAX-EUR;GDAX-USD;'
-          )
 
     market_position = {'KRAKEN':0,'BINANCE':1,'BITTREX':2,'POLONIEX':3,'GDAX':4}
     currency_position = {'BTC':0,'ETH':1,'EUR':2,'USD':3}
     crypto_position = dict()
-    i_count=1
+    i_count = 1
     for key in CryptoManager.get_manager().dict.keys():
         crypto_position[key] = i_count
         i_count += 1
@@ -145,23 +172,20 @@ if __name__ == '__main__':
             if s_value is not None:
                 m_values[crypto_position[s_crypto]][1 + market_position[s_market] * i_nb_currency + currency_position[s_currency]] = s_value
 
-    write_excel_file(m_values)
+    l_compared = get_best_crypto_conversion()
 
-    #for cryptocurrency, values_in_markets in cryptocurrency_dict.items():
-    #    marketslist = values_in_markets.market_value
-    #    currency_nb = 4
-    #    market_nb = 5
-    #    value_line = ['' for i in range(1+market_nb*currency_nb)]
-    #    value_line[0] = cryptocurrency
-    #    for market, currencies in marketslist.items():
-    #        for currency, value in currencies.items():
-    #            value_line[market_position[market]*currency_position[currency]] = ('%.10f' % value).replace('.', ',')
-    #    value_tab.extend([value_line])
+    write_excel_file(m_values, l_compared)
+    # print('\n\n')
+    # print('CRYPTO;KRAKEN-BTC;KRAKEN-ETH;KRAKEN-EUR;KRAKEN-USD;'
+    #      'BINANCE-BTC;BINANCE-ETH;BINANCE-EUR;BINANCE-USD;'
+    #      'BITTREX-BTC;BITTREX-ETH;BITTREX-EUR;BITTREX-USD;'
+    #      'POLONIEX-BTC;POLONIEX-ETH;POLONIEX-EUR;POLONIEX-USD;'
+    #      'GDAX-BTC;GDAX-ETH;GDAX-EUR;GDAX-USD;'
+    #      )
     # print the result table
-    for i in m_values:
-        print(reduce(lambda x, y: x+';'+y, i))
-    # Action().cmdloop()
-    # example : wait 3600
+    # for i in m_values:
+    #    print(reduce(lambda x, y: x+';'+y, i))
+
     print('end')
     exit(0)
 

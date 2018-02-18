@@ -11,6 +11,8 @@ class Cryptocurrency:
         self._id = Cryptocurrency._id_count
         self.__name = name
         self.__codelist = codelist
+        self.__currency_in_markets_compared = dict()
+        self.__markets_in_matrix = list()
         #self.__market_value = {} # => 'KRAKEN':{'BTC':15,'EUR':55}
         #self.__withdraw = {}  # => 'KRAKEN':12.0 BTC
 
@@ -40,6 +42,23 @@ class Cryptocurrency:
 
     def __repr__(self):
         return self.__name.__repr__()
+
+    def add_currency_in_markets_compared(self, c_currency, m_line_markets, m_compare_currency):
+        self.__currency_in_markets_compared[c_currency.code] = (c_currency, m_compare_currency)
+        self.__markets_in_matrix = m_line_markets
+
+    """
+    self.__currency_in_markets_compared is a dictionnary of string of currency : 
+    list( instance of currency, matrix (markets, markets) of compared value in %)
+    
+    """
+    @property
+    def currency_in_markets_compared_dict(self):
+        return self.__currency_in_markets_compared
+
+    @property
+    def markets_list(self):
+        return self.__markets_in_matrix
 
 
 class CryptoManager:
